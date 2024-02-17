@@ -1,0 +1,19 @@
+{
+	"build_systems":
+	[
+		{
+			"name": "pygen test",
+			"windows":
+			{
+				"shell_cmd": "python pygen.py # test.txt",
+				"working_dir": "${project_path}"
+			}
+		}
+	],	
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	]
+}

@@ -1,0 +1,30 @@
+asdf
+asdf
+as
+df
+a
+sdf
+as
+df
+asdf
+
+#pygen_code_begin hest
+x0x0
+#pygen_code_end
+
+
+pygen_begin(hest)
+print("hej med dig")
+pygen_end()
+
+pygen_begin(fisk)
+print("din fis")
+pygen_end()
+
+
+
+
+
+Yo
+
+fisk
