@@ -4,7 +4,8 @@ import re
 import sys
 import time
 import json
-import base64
+import random
+import string
 
 comment = sys.argv[2]
 file_path = sys.argv[1]
@@ -14,8 +15,6 @@ if len(sys.argv)>3:
 	multi_line_begin = sys.argv[3];
 if len(sys.argv)>4:
 	multi_line_end = sys.argv[4];
-
-
 
 temp_file_path = file_path + '.tmp'
 
@@ -37,6 +36,10 @@ def gen_code(script):
 	finally:
 		sys.stdout = original_stdout
 	return generated
+
+def randomword(length):
+   letters = string.ascii_lowercase
+   return ''.join(random.choice(letters) for i in range(length))	
 
 class Entry:
 	def __init__(self):
@@ -68,10 +71,7 @@ for x in range(0, len(lines)): #line in lines:
 		if match_begin:
 			key = match_begin.group(1).strip()
 			if "" == key:
-				hashed = str(hash(str(abs(time.time()))))
-				b = base64.b64encode(bytes(hashed, 'utf-8'))
-				key = b.decode('utf-8')[:-10]
-
+				key = randomword(16)
 			E.Key = key
 			E.Begin = x
 	else:
@@ -154,13 +154,13 @@ os.rename(temp_file_path, file_path)
 
 
 """pygen_begin()
-for x in range(0,5):
+for x in range(0,2):
 	print(f"def foo{x}:")
-	print("\t print(\"hello world{x}\")")
+	print(f"\t print(\"hello world{x}\")")
 pygen_end()"""
 
 
 """pygen_begin()
-for x in range(0,10):
+for x in range(0,3):
 	print("print(\"not very easter egg\")")
 pygen_end()"""
