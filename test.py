@@ -5,14 +5,14 @@ x0x0
 
 XXXX
 
-pygen_begin(hest)
+"""pygen_begin(hest)
 print("hej med dig")
-pygen_end()
+pygen_end()"""
 
 YYYY
 
-pygen_begin(fisk)
+"""pygen_begin(fisk)
 print("din fis")
-pygen_end()
+pygen_end()"""
 
 ZZZZ

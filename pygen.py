@@ -5,15 +5,38 @@ import sys
 import time
 import json
 
-comment = sys.argv[1]
-file_path = sys.argv[2]
+comment = sys.argv[2]
+file_path = sys.argv[1]
+multi_line_begin = "";
+multi_line_end = "";
+if len(sys.argv)>3:
+	multi_line_begin = sys.argv[3];
+if len(sys.argv)>4:
+	multi_line_end = sys.argv[4];
+
+
+
 temp_file_path = file_path + '.tmp'
 
-begin_pattern = re.compile(r'^pygen_begin\((.*?)\)')
-end_pattern = re.compile(r'^pygen_end\((.*?)\)')
+begin_pattern = re.compile(f"^{multi_line_begin}pygen_begin\\((.*?)\\)")
+end_pattern = re.compile(f"^pygen_end\\((.*?)\\){multi_line_begin}")
 code_begin_pattern = re.compile(f"^{re.escape(comment)}pygen_code_begin\\s(.*)")
 code_end_pattern = re.compile(f"^{re.escape(comment)}pygen_code_end(.*?)")
 code_key = "" 
+
+def gen_code(script):
+	print(f"generating for {script}\n")
+	#thank you chatGPT
+	capture = io.StringIO()
+	generated = ""
+	original_stdout = sys.stdout
+	try:
+		sys.stdout = capture
+		exec(script)
+		generated = capture.getvalue()
+	finally:
+		sys.stdout = original_stdout
+	return generated
 
 class Entry:
 	def __init__(self):
@@ -24,7 +47,7 @@ class Entry:
 		self.Code = ""
 		self.Key = ""
 	def __str__(self):
-		return f"{v.Begin} {v.End} {v.CodeBegin} {v.CodeEnd} '{v.Code}' {v.Key}"
+		return f"{self.Begin} {self.End} {self.CodeBegin} {self.CodeEnd} '{self.Code}' {self.Key}"
 
 Entries = {}
 
@@ -53,10 +76,9 @@ for x in range(0, len(lines)): #line in lines:
 		if match_end:
 			E.End = x
 			Entries[E.Key] = E
-			v = Entries[E.Key]
-			print(f"ADD {v.Begin} {v.End} {v.CodeBegin} {v.CodeEnd} {v.Code} {v.Key} ")
 			E = Entry()
 
+print(f"keys {str(Entries.keys())} \n ")
 Dummy = Entry()
 key = "" 
 for x in range(0, len(lines)): #line in lines:
@@ -64,6 +86,8 @@ for x in range(0, len(lines)): #line in lines:
 	if Dummy.CodeBegin == -1:
 		match_code_begin = code_begin_pattern.search(line)
 		if match_code_begin:
+			print("BEGIN")
+			print(line)
 			key = match_code_begin.group(1).strip()
 			if key in Entries:
 				Entries[key].CodeBegin = x
@@ -74,28 +98,19 @@ for x in range(0, len(lines)): #line in lines:
 	else:
 		match_code_end = code_end_pattern.search(line)
 		if match_code_end:
+			print("END")
+			print(line)
+
 			key = Dummy.Key
 			if key in Entries:
 				Entries[key].CodeEnd = x
 			Dummy.Key = ""
 			Dummy.CodeBegin = -1
+			Dummy.CodeEnd = -1
+			print(str(Entries[key]))
 
 
 
-
-def gen_code(script):
-	print(f"generating for {script}\n")
-	#thank you chatGPT
-	capture = io.StringIO()
-	generated = ""
-	original_stdout = sys.stdout
-	try:
-		sys.stdout = capture
-		exec(script)
-		generated = capture.getvalue()
-	finally:
-		sys.stdout = original_stdout
-	return generated
 
 
 #tag where we want to insert code
@@ -110,7 +125,9 @@ for k, v in Entries.items():
 	the_str = ''.join(lines[v.Begin+1:v.End])
 	v.Code = gen_code(the_str)
 
-#sort reverse based on insertion point so we
+
+for x in range(0, len(lines)): #line in lines:
+	print(f"{line_keys[x]} :: {x} ::{lines[x]}")
 
 with open(temp_file_path, 'w') as temp_file:
 	x = 0
@@ -120,23 +137,20 @@ with open(temp_file_path, 'w') as temp_file:
 		if "" == line_key:
 			temp_file.write(line)
 		else:
-			key = v.Key
 			E = Entries[line_key]
+			key = line_key
+			print(f"WRAPP {str(v)}\n")
+			if E.Code and E.End != -1:
 
-			##temp_file.write(f"YO_STARTING {key} xxx {str(E)}\n")
-			if v.Code and v.End != -1:
-				if line == v.CodeEnd:
-					#append after code block
+				if x == E.End:
 					temp_file.write(line)
 					temp_file.write("\n")
-				temp_file.write(f"{comment}pygen_code_begin {key}\n")
+				temp_file.write(f"{comment}pygen_code_begin {key}\n\n")
 				temp_file.write(v.Code)
-				temp_file.write(f"{comment}pygen_code_end\n")
-
-				if line == v.CodeBegin:
-					#skip existing code.
-					x += v.CodeEnd - v.CodeBegin -1
-			##temp_file.write(f"YO_END {key}\n")
+				temp_file.write(f"\n{comment}pygen_code_end\n")
+				print(f"COMPARE {x} :: {str(E)}\n")
+				if x == E.CodeBegin:
+					x += E.CodeEnd - E.CodeBegin
 		x += 1
 
 # Replace the original file with the temporary file

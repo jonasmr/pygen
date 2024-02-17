@@ -5,7 +5,15 @@
 			"name": "pygen test",
 			"windows":
 			{
-				"shell_cmd": "python pygen.py # test.txt",
+				"shell_cmd": "python pygen.py test.txt #",
+				"working_dir": "${project_path}"
+			}
+		},
+		{
+			"name": "pygen python",
+			"windows":
+			{
+				"shell_cmd": "python pygen.py test.py # \"\\\"\\\"\\\"\" \"\\\"\\\"\\\"\"",
 				"working_dir": "${project_path}"
 			}
 		}
