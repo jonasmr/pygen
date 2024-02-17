@@ -24,5 +24,31 @@
 		{
 			"path": "."
 		}
+	],
+	"Run Task.tasks": 
+	[
+		{
+			"name": "pygen python",
+			"type": "shell",
+			"command": "python",
+			"args": "c:/git/pygen/pygen.py ${file} # \"\\\"\\\"\\\"\" \"\\\"\\\"\\\"\"",
+			"windows": {
+				"command": "python",
+				"args": "c:/git/pygen/pygen.py ${file} # \"\\\"\\\"\\\"\" \"\\\"\\\"\\\"\""
+			},
+			"show_output_panel": true
+		},
+		{
+			"name": "pygen c",
+			"type": "shell",
+			"command": "python",
+			"args": "c:/git/pygen/pygen.py ${file} //",
+			"windows": {
+				"command": "python",
+				"args": "c:/git/pygen/pygen.py ${file} //"
+			},
+			"show_output_panel": true
+		}
+
 	]
 }
