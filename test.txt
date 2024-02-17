@@ -1,18 +1,22 @@
 
 #pygen_code_begin hest
-x0x0
+
+xoxo
 #pygen_code_end
 
 XXXX
 
 pygen_begin(hest)
-print("hej med dig")
+for x in range(0,10):
+	print(f"f({x})")
 pygen_end()
 
 YYYY
 
 pygen_begin(fisk)
-print("din fis")
+for x in range(0,10):
+	print("din fis")
 pygen_end()
+
 
 ZZZZ

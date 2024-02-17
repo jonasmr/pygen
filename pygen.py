@@ -4,6 +4,7 @@ import re
 import sys
 import time
 import json
+import base64
 
 comment = sys.argv[2]
 file_path = sys.argv[1]
@@ -25,7 +26,6 @@ code_end_pattern = re.compile(f"^{re.escape(comment)}pygen_code_end(.*?)")
 code_key = "" 
 
 def gen_code(script):
-	print(f"generating for {script}\n")
 	#thank you chatGPT
 	capture = io.StringIO()
 	generated = ""
@@ -68,7 +68,10 @@ for x in range(0, len(lines)): #line in lines:
 		if match_begin:
 			key = match_begin.group(1).strip()
 			if "" == key:
-				key = str(hash(str(time.time())))
+				hashed = str(hash(str(abs(time.time()))))
+				b = base64.b64encode(bytes(hashed, 'utf-8'))
+				key = b.decode('utf-8')[:-10]
+
 			E.Key = key
 			E.Begin = x
 	else:
@@ -78,7 +81,6 @@ for x in range(0, len(lines)): #line in lines:
 			Entries[E.Key] = E
 			E = Entry()
 
-print(f"keys {str(Entries.keys())} \n ")
 Dummy = Entry()
 key = "" 
 for x in range(0, len(lines)): #line in lines:
@@ -86,8 +88,6 @@ for x in range(0, len(lines)): #line in lines:
 	if Dummy.CodeBegin == -1:
 		match_code_begin = code_begin_pattern.search(line)
 		if match_code_begin:
-			print("BEGIN")
-			print(line)
 			key = match_code_begin.group(1).strip()
 			if key in Entries:
 				Entries[key].CodeBegin = x
@@ -98,17 +98,12 @@ for x in range(0, len(lines)): #line in lines:
 	else:
 		match_code_end = code_end_pattern.search(line)
 		if match_code_end:
-			print("END")
-			print(line)
-
 			key = Dummy.Key
 			if key in Entries:
 				Entries[key].CodeEnd = x
 			Dummy.Key = ""
 			Dummy.CodeBegin = -1
 			Dummy.CodeEnd = -1
-			print(str(Entries[key]))
-
 
 
 
@@ -120,14 +115,15 @@ for k, v in Entries.items():
 	else: 
 		if v.End != -1: 
 			line_keys[v.End] = v.Key
+		if v.Begin != -1: 
+			line_keys[v.Begin] = v.Key
 
 for k, v in Entries.items():
 	the_str = ''.join(lines[v.Begin+1:v.End])
 	v.Code = gen_code(the_str)
 
-
-for x in range(0, len(lines)): #line in lines:
-	print(f"{line_keys[x]} :: {x} ::{lines[x]}")
+# for x in range(0, len(lines)): #line in lines:
+#	print(f"{line_keys[x]} :: {x} ::{lines[x]}")
 
 with open(temp_file_path, 'w') as temp_file:
 	x = 0
@@ -139,23 +135,32 @@ with open(temp_file_path, 'w') as temp_file:
 		else:
 			E = Entries[line_key]
 			key = line_key
-			print(f"WRAPP {str(v)}\n")
-			if E.Code and E.End != -1:
-
+			if E.Begin == x:
+				temp_file.write(f"{multi_line_begin}pygen_begin({key})\n")
+			elif E.Code and E.End != -1:
 				if x == E.End:
 					temp_file.write(line)
-					temp_file.write("\n")
+					temp_file.write("\n\n")
 				temp_file.write(f"{comment}pygen_code_begin {key}\n\n")
-				temp_file.write(v.Code)
+				temp_file.write(E.Code)
 				temp_file.write(f"\n{comment}pygen_code_end\n")
-				print(f"COMPARE {x} :: {str(E)}\n")
 				if x == E.CodeBegin:
 					x += E.CodeEnd - E.CodeBegin
 		x += 1
 
 # Replace the original file with the temporary file
-# os.remove(file_path)
-#os.rename(temp_file_path, file_path)
+os.remove(file_path)
+os.rename(temp_file_path, file_path)
 
-print("File has been modified in place.")
-print(temp_file_path)
+
+"""pygen_begin()
+for x in range(0,5):
+	print(f"def foo{x}:")
+	print("\t print(\"hello world{x}\")")
+pygen_end()"""
+
+
+"""pygen_begin()
+for x in range(0,10):
+	print("print(\"not very easter egg\")")
+pygen_end()"""
