@@ -153,14 +153,32 @@ os.remove(file_path)
 os.rename(temp_file_path, file_path)
 
 
-"""pygen_begin()
+"""pygen_begin(drswlxxgmdcdlnrk)
 for x in range(0,2):
 	print(f"def foo{x}:")
 	print(f"\t print(\"hello world{x}\")")
 pygen_end()"""
 
 
-"""pygen_begin()
+#pygen_code_begin drswlxxgmdcdlnrk
+
+def foo0:
+	 print("hello world0")
+def foo1:
+	 print("hello world1")
+
+#pygen_code_end
+
+
+"""pygen_begin(tlyhipacfwlhkdhz)
 for x in range(0,3):
 	print("print(\"not very easter egg\")")
 pygen_end()"""
+
+#pygen_code_begin tlyhipacfwlhkdhz
+
+print("not very easter egg")
+print("not very easter egg")
+print("not very easter egg")
+
+#pygen_code_end

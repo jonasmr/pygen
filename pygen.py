@@ -16,16 +16,45 @@ if len(sys.argv)>3:
 if len(sys.argv)>4:
 	multi_line_end = sys.argv[4];
 
+
+print(" comments are '{comment}' '{multi_line_begin}' '{multi_line_end}' ")
 temp_file_path = file_path + '.tmp'
 
-begin_pattern = re.compile(f"^{multi_line_begin}pygen_begin\\((.*?)\\)")
-end_pattern = re.compile(f"^pygen_end\\((.*?)\\){multi_line_begin}")
+begin_pattern = re.compile(f"^@pybeg")
+end_pattern = re.compile(f"^@pyend")
 code_begin_pattern = re.compile(f"^{re.escape(comment)}pygen_code_begin\\s(.*)")
 code_end_pattern = re.compile(f"^{re.escape(comment)}pygen_code_end(.*?)")
 code_key = "" 
 
-def gen_code(script):
-	#thank you chatGPT
+ScriptTemp = {}
+ScriptEntries = {}
+CodeEntries = {}
+
+
+def pyg(name):
+	stream = io.StringIO()
+	script_dict[name] = stream
+	return stream
+
+class ScriptEntry:
+	def __init__(self):
+		self.ScriptBegin = -1
+		self.ScriptEnd = -1
+		self.Key = ""
+	def __str__(self):
+		return f"{self.ScriptBegin} {self.ScriptEnd} / {self.Key}"
+
+class CodeEntry:
+	def __init__(self, Key, Code = "", ScriptKey = ""):
+		self.Begin = -1
+		self.End = -1
+		self.Code = Code
+		self.Key = Key
+	def __str__(self):
+		return f"{self.Begin} {self.End} {self.Key} / {self.Code} "
+
+def gen_code(script, script_key):
+	ScriptTemp = {}
 	capture = io.StringIO()
 	generated = ""
 	original_stdout = sys.stdout
@@ -33,6 +62,15 @@ def gen_code(script):
 		sys.stdout = capture
 		exec(script)
 		generated = capture.getvalue()
+
+		for k, v in ScriptTemp:
+			if k in CodeEntries:
+				CodeEntries[k].Code = v
+				CodeEntries[k].ScriptKey = script_key
+				
+			else:
+				CodeEntries[k] = CodeEntry(k, v, script_key)
+			CodeEntries[k] = v
 	finally:
 		sys.stdout = original_stdout
 	return generated
@@ -41,18 +79,10 @@ def randomword(length):
    letters = string.ascii_lowercase
    return ''.join(random.choice(letters) for i in range(length))	
 
-class Entry:
-	def __init__(self):
-		self.Begin = -1
-		self.End = -1
-		self.CodeBegin = -1
-		self.CodeEnd = -1
-		self.Code = ""
-		self.Key = ""
-	def __str__(self):
-		return f"{self.Begin} {self.End} {self.CodeBegin} {self.CodeEnd} '{self.Code}' {self.Key}"
 
-Entries = {}
+
+
+
 
 with open(file_path, 'r') as file:
 	lines = file.readlines()
@@ -60,63 +90,83 @@ with open(file_path, 'r') as file:
 #pass one, search for all pybeg/pyend
 E = Entry()
 
-line_keys = []
+script_keys = []
+code_keys = []
 for x in range(0, len(lines)): #line in lines:
-	line_keys.append("")
+	script_keys.append("")
+	code_keys.append("")
 
+
+
+#search for script entries
+ScriptEntry SE = ScriptEntry()
 for x in range(0, len(lines)): #line in lines:
 	line = lines[x]
-	if E.Begin == -1:
+
+	if SE.ScriptBegin == -1:
 		match_begin = begin_pattern.search(line)
 		if match_begin:
 			key = match_begin.group(1).strip()
 			if "" == key:
 				key = randomword(16)
-			E.Key = key
-			E.Begin = x
+			SE.Key = Key
+			SE.ScriptBegin = x
 	else:
 		match_end = end_pattern.search(line)
 		if match_end:
-			E.End = x
-			Entries[E.Key] = E
-			E = Entry()
+			SE.ScriptEnd = x
+			ScriptEntries[SE.Key] = SE
+			script_keys[x] = SE.Key
+			SE = ScriptEntry()
 
-Dummy = Entry()
-key = "" 
+SE = None
+#search for existing code blocks.
+CodeEntry = CodeEntry()
+
 for x in range(0, len(lines)): #line in lines:
 	line = lines[x]
-	if Dummy.CodeBegin == -1:
+	if CodeEntry.CodeBegin == -1:
 		match_code_begin = code_begin_pattern.search(line)
 		if match_code_begin:
 			key = match_code_begin.group(1).strip()
-			if key in Entries:
-				Entries[key].CodeBegin = x
+			if key in CodeEntries:
+				CodeEntries[key].CodeBegin = x
+				CodeEntry.CodeBegin = x
+				CodeEntry.Key = key
 			else:
 				print(f"unknown code key {key} - ignoring\n");
-			Dummy.CodeBegin = x
-			Dummy.Key = key
 	else:
 		match_code_end = code_end_pattern.search(line)
 		if match_code_end:
-			key = Dummy.Key
-			if key in Entries:
-				Entries[key].CodeEnd = x
-			Dummy.Key = ""
-			Dummy.CodeBegin = -1
-			Dummy.CodeEnd = -1
+			key = CodeEntry.Key
+			if key in CodeEntries:
+				CodeEntries[key].CodeEnd = x
+			else:
+				print(f"failed")
+				sys.exit(1)
+			CodeEntry.Key = ""
+			CodeEntry.CodeBegin = -1
+			CodeEntry.CodeEnd = -1
+
+CodeEntry = None
+
+#generate code
+for k, v in ScriptEntries.items():
+	the_str = ''.join(lines[v.ScriptBegin+1:v.ScriptEnd])
+	gen_code(the_str, v)
 
 
 
 
 #tag where we want to insert code
-for k, v in Entries.items():
-	if v.CodeBegin != -1:
-		line_keys[v.CodeBegin] = v.Key
-	else: 
-		if v.End != -1: 
-			line_keys[v.End] = v.Key
-		if v.Begin != -1: 
-			line_keys[v.Begin] = v.Key
+#for k, v in Entries.items():
+#	#if v.CodeBegin != -1:
+#		line_keys[v.CodeBegin] = v.Key
+#	else: 
+#		if v.End != -1: 
+#			line_keys[v.End] = v.Key
+#		if v.Begin != -1: 
+#			line_keys[v.Begin] = v.Key
 
 for k, v in Entries.items():
 	the_str = ''.join(lines[v.Begin+1:v.End])
@@ -129,38 +179,50 @@ with open(temp_file_path, 'w') as temp_file:
 	x = 0
 	while x < len(lines): #line in lines:
 		line = lines[x]
-		line_key = line_keys[x]
-		if "" == line_key:
+		script_key = script_keys[x]
+		code_key = code_keys[x]
+		if "" == script_key and "" == code_key:
 			temp_file.write(line)
-		else:
-			E = Entries[line_key]
-			key = line_key
-			if E.Begin == x:
-				temp_file.write(f"{multi_line_begin}pygen_begin({key})\n")
-			elif E.Code and E.End != -1:
-				if x == E.End:
-					temp_file.write(line)
-					temp_file.write("\n\n")
-				temp_file.write(f"{comment}pygen_code_begin {key}\n\n")
-				temp_file.write(E.Code)
-				temp_file.write(f"\n{comment}pygen_code_end\n")
-				if x == E.CodeBegin:
-					x += E.CodeEnd - E.CodeBegin
+		elif "" != code_key:
+			# spit out code
+			CE = CodeEntries[code_key]
+			temp_file.write(f"{comment}pygen_code_begin {CE.key}\n")
+			temp_file.write(CE.Code)
+			temp_file.write(f"{comment}pygen_code_end\n")
+			#skip previous code..
+			x += E.End - E.Begin
+		elif "" != script_key:
+			# loop over all code entrie
+			temp_file.write(line)
+			x += 1
+			# todo skip comments.
+			for k, v in CodeEntries:
+				if v.CodeBegin == -1: # new code, insert
+					temp_file.write(f"\n")
+					temp_file.write(f"{comment}pygen_code_begin {CE.key}\n")
+					temp_file.write(CE.Code)
+					temp_file.write(f"{comment}pygen_code_end\n")
 		x += 1
 
 # Replace the original file with the temporary file
-os.remove(file_path)
-os.rename(temp_file_path, file_path)
+# os.remove(file_path)
+# os.rename(temp_file_path, file_path)
 
 
-"""pygen_begin()
+"""
+@pybeg
+o = pyg('defs')
 for x in range(0,2):
-	print(f"def foo{x}:")
-	print(f"\t print(\"hello world{x}\")")
-pygen_end()"""
+	o.write(f"def foo{x}:\\n")
+	o.write(f"\tprint(\"hello world{x}\")\\n")
+@pyend
+"""
 
 
-"""pygen_begin()
+"""
+@pybeg
+o = pyg('range')
 for x in range(0,3):
-	print("print(\"not very easter egg\")")
-pygen_end()"""
+	o.write("print(\"not very easter egg\")\\n")
+@pyend
+"""
