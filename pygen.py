@@ -17,7 +17,7 @@ if len(sys.argv)>4:
 	multi_line_end = sys.argv[4];
 
 
-#print(f"comments are '{comment}' '{multi_line_begin}' '{multi_line_end}' ")
+print(f"comments are '{comment}' '{multi_line_begin}' '{multi_line_end}' ")
 
 temp_file_path = file_path + '.tmp'
 
@@ -65,12 +65,12 @@ def gen_code(script, script_key):
 		exec(script)
 		generated = capture.getvalue()
 		for k, v in ScriptTemp.items():
-			# print(f"script key is : '{script_key}'")
 			if k in CodeEntries:
 				CodeEntries[k].Code = v.getvalue()
 				CodeEntries[k].ScriptKey = script_key
 			else:
 				CodeEntries[k] = CodeEntry(k, v.getvalue(), script_key)
+			print(f"generated {k}, {CodeEntries[k].Code}")
 			#CodeEntries[k] = v
 	finally:
 		pass
@@ -134,8 +134,7 @@ for x in range(0, len(lines)): #line in lines:
 	if CodeBegin == -1:
 		match_code_begin = code_begin_pattern.search(line)
 		if match_code_begin:
-			Key = match_code_begin.group(1).strip()
-			
+			Key = match_code_begin.group(1).strip()			
 			if Key in CodeEntries:
 				CodeEntries[Key].Begin = x
 				CodeBegin = x
@@ -170,7 +169,6 @@ with open(temp_file_path, 'w') as temp_file:
 		elif "" != code_key:
 			# spit out code
 			CE = CodeEntries[code_key]
-
 			temp_file.write(f"{comment}pygen_code_begin {CE.Key}\n")
 			temp_file.write(CE.Code)
 			if not CE.Code.endswith('\n'):
