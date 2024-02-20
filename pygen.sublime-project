@@ -47,7 +47,7 @@
 				"command": "python",
 				"args": "c:/git/pygen/pygen.py ${file} //"
 			},
-			"show_output_panel": true
+			"show_output_panel": false
 		}
 
 	]
